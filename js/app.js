@@ -286,34 +286,70 @@ function loadSendPage() {
     if (todayBirthdays.length === 0) {
         recipientsEl.innerHTML = '<p class="empty-message">오늘 생일인 후원자가 없습니다.</p>';
         sendBtn.disabled = true;
+        updateMessagePreview(null);
     } else {
-        recipientsEl.innerHTML = todayBirthdays.map(supporter => `
-            <div class="recipient-chip">
-                ${supporter.name} (${SMSService.formatPhone(supporter.phone)})
+        // Render selectable list
+        recipientsEl.innerHTML = todayBirthdays.map((supporter, index) => `
+            <div class="recipient-item ${index === 0 ? 'active' : ''}" id="recipient-${supporter.id}">
+                <input type="checkbox" class="recipient-checkbox" id="check-${supporter.id}" value="${supporter.id}" checked>
+                <div class="recipient-info" onclick="selectRecipientPreview(${supporter.id})">
+                    ${supporter.name} <span class="recipient-phone">(${SMSService.formatPhone(supporter.phone)})</span>
+                </div>
             </div>
         `).join('');
-        sendBtn.disabled = false;
-    }
 
-    updateMessagePreview();
+        sendBtn.disabled = false;
+
+        // Preview the first one by default
+        updateMessagePreview(todayBirthdays[0]);
+    }
 }
 
-function updateMessagePreview() {
-    const template = document.getElementById('message-template').value;
+// Global variable to track currently previewed supporter
+let currentPreviewId = null;
+
+function selectRecipientPreview(id) {
     const supporters = DataManager.getSupporters();
-    const todayBirthdays = BirthdayMatcher.getTodayBirthdays(supporters);
+    const target = supporters.find(s => s.id === id);
+
+    if (target) {
+        // Update UI active state
+        document.querySelectorAll('.recipient-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        const activeItem = document.getElementById(`recipient-${id}`);
+        if (activeItem) activeItem.classList.add('active');
+
+        currentPreviewId = id;
+        updateMessagePreview(target);
+    }
+}
+
+function updateMessagePreview(specificRecipient = null) {
+    const template = document.getElementById('message-template').value;
     const previewEl = document.getElementById('message-preview');
 
-    if (todayBirthdays.length === 0) {
-        previewEl.textContent = '오늘 생일인 후원자가 없습니다.';
+    // If no specific recipient passed (e.g. on input change), try to find current one or fallback
+    let target = specificRecipient;
+    if (!target) {
+        const supporters = DataManager.getSupporters();
+        if (currentPreviewId) {
+            target = supporters.find(s => s.id === currentPreviewId);
+        } else {
+            const todayBirthdays = BirthdayMatcher.getTodayBirthdays(supporters);
+            if (todayBirthdays.length > 0) target = todayBirthdays[0];
+        }
+    }
+
+    if (!target) {
+        previewEl.textContent = '대상자를 선택하면 미리보기가 표시됩니다.';
         return;
     }
 
-    const firstRecipient = todayBirthdays[0];
-    const personalizedMessage = SMSService.personalizeMessage(template, firstRecipient.name);
+    const personalizedMessage = SMSService.personalizeMessage(template, target.name);
 
     previewEl.textContent = personalizedMessage + '\n\n' +
-        `(${firstRecipient.name}님 기준 미리보기)`;
+        `(${target.name}님에게 발송될 메시지)`;
 }
 
 async function sendBulkSMS() {
@@ -330,15 +366,19 @@ async function sendBulkSMS() {
         return;
     }
 
-    const supporters = DataManager.getSupporters();
-    const todayBirthdays = BirthdayMatcher.getTodayBirthdays(supporters);
+    // Get checked recipients
+    const checkboxes = document.querySelectorAll('.recipient-checkbox:checked');
+    const checkedIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
 
-    if (todayBirthdays.length === 0) {
-        showToast('오늘 생일인 후원자가 없습니다.', 'warning');
+    if (checkedIds.length === 0) {
+        showToast('발송할 대상자를 선택해주세요.', 'warning');
         return;
     }
 
-    const confirmMsg = `${todayBirthdays.length}명에게 SMS를 발송하시겠습니까?`;
+    const supporters = DataManager.getSupporters();
+    const targetSupporters = supporters.filter(s => checkedIds.includes(s.id));
+
+    const confirmMsg = `선택한 ${targetSupporters.length}명에게 SMS를 발송하시겠습니까?`;
     if (!confirm(confirmMsg)) {
         return;
     }
@@ -346,7 +386,7 @@ async function sendBulkSMS() {
     showLoading('SMS 발송 중...');
 
     try {
-        const results = await SMSService.sendBulkSMS(todayBirthdays, template, (progress) => {
+        const results = await SMSService.sendBulkSMS(targetSupporters, template, (progress) => {
             const loadingText = document.querySelector('.loading-text');
             if (loadingText) {
                 loadingText.textContent = `SMS 발송 중... (${progress.current}/${progress.total})`;
@@ -368,11 +408,18 @@ async function sendBulkSMS() {
 
         showToast(message, successCount > 0 ? 'success' : 'error');
         loadDashboard();
+
+        // Refresh the send page list to reset states if needed, or keep it
+        // navigateToPage('history'); // Optional: redirect to history?
+
     } catch (error) {
         hideLoading();
         showToast('오류: ' + error.message, 'error');
     }
 }
+
+// Make selectRecipientPreview available globally
+window.selectRecipientPreview = selectRecipientPreview;
 
 // ==========================================
 // History
