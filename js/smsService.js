@@ -12,7 +12,7 @@ const SMSService = {
             throw new Error('API Key와 Secret이 설정되지 않았습니다. 설정 페이지에서 입력해주세요.');
         }
 
-        const timestamp = Date.now().toString();
+        const timestamp = new Date().toISOString();
         const salt = this.generateSalt();
 
         // Create signature: HMAC-SHA256(API_SECRET, timestamp + salt)
@@ -93,7 +93,8 @@ const SMSService = {
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.errorMessage || `API 오류: ${response.status}`);
+                console.error('API Error Response:', result);
+                throw new Error(result.errorMessage || result.message || `API 오류: ${response.status} - ${JSON.stringify(result)}`);
             }
 
             return {
