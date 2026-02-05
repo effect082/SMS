@@ -1,0 +1,24 @@
+# Editor and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local configuration (if you create one)
+config.local.js
+.env
+.env.local
+
+# Backup files
+*.bak
+*.backup

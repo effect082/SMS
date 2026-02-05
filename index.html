@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>복지관 생일 SMS 시스템</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <h1 class="app-title">🎂 생일 SMS 발송 시스템</h1>
+                <p class="app-subtitle">복지관 후원자 생일 자동 축하 시스템</p>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="app-nav">
+            <button class="nav-btn active" data-page="dashboard">
+                <span class="nav-icon">📊</span>
+                <span class="nav-text">대시보드</span>
+            </button>
+            <button class="nav-btn" data-page="supporters">
+                <span class="nav-icon">👥</span>
+                <span class="nav-text">후원자 관리</span>
+            </button>
+            <button class="nav-btn" data-page="send">
+                <span class="nav-icon">📱</span>
+                <span class="nav-text">SMS 발송</span>
+            </button>
+            <button class="nav-btn" data-page="history">
+                <span class="nav-icon">📋</span>
+                <span class="nav-text">발송 이력</span>
+            </button>
+            <button class="nav-btn" data-page="settings">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">설정</span>
+            </button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="app-main">
+            <!-- Dashboard Page -->
+            <section id="dashboard-page" class="page active">
+                <h2 class="page-title">대시보드</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-content">
+                            <div class="stat-label">총 후원자</div>
+                            <div class="stat-value" id="total-supporters">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card highlight">
+                        <div class="stat-icon">🎉</div>
+                        <div class="stat-content">
+                            <div class="stat-label">오늘 생일</div>
+                            <div class="stat-value" id="today-birthdays">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📅</div>
+                        <div class="stat-content">
+                            <div class="stat-label">이번 달 생일</div>
+                            <div class="stat-value" id="month-birthdays">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✉️</div>
+                        <div class="stat-content">
+                            <div class="stat-label">총 발송</div>
+                            <div class="stat-value" id="total-sent">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-section">
+                    <h3>최근 발송 이력</h3>
+                    <div id="recent-history" class="recent-history-list">
+                        <p class="empty-message">발송 이력이 없습니다.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Supporters Management Page -->
+            <section id="supporters-page" class="page">
+                <h2 class="page-title">후원자 관리</h2>
+                
+                <div class="action-bar">
+                    <button id="download-template-btn" class="btn btn-secondary">
+                        <span>📥</span> CSV 템플릿 다운로드
+                    </button>
+                    <button id="clear-data-btn" class="btn btn-danger">
+                        <span>🗑️</span> 전체 데이터 삭제
+                    </button>
+                </div>
+
+                <div class="upload-section">
+                    <div class="upload-area" id="upload-area">
+                        <div class="upload-icon">📤</div>
+                        <p class="upload-text">CSV 파일을 드래그하거나 클릭하여 업로드</p>
+                        <p class="upload-hint">이름, 전화번호, 생년월일 형식</p>
+                        <input type="file" id="csv-file-input" accept=".csv" hidden>
+                    </div>
+                </div>
+
+                <div class="search-bar">
+                    <input type="text" id="search-input" placeholder="이름 또는 전화번호 검색..." class="search-input">
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>번호</th>
+                                <th>이름</th>
+                                <th>전화번호</th>
+                                <th>생년월일</th>
+                                <th>나이</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody id="supporters-table-body">
+                            <tr>
+                                <td colspan="6" class="empty-message">데이터가 없습니다. CSV 파일을 업로드해주세요.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="supporter-count" class="data-count">총 0명</div>
+            </section>
+
+            <!-- Send SMS Page -->
+            <section id="send-page" class="page">
+                <h2 class="page-title">SMS 발송</h2>
+
+                <div class="send-section">
+                    <div class="form-group">
+                        <label for="message-template">메시지 템플릿</label>
+                        <textarea id="message-template" class="message-input" rows="6" placeholder="메시지를 입력하세요. {name}을 사용하면 이름으로 치환됩니다."></textarea>
+                        <p class="input-hint">💡 {name}을 사용하면 각 후원자의 이름으로 자동 치환됩니다.</p>
+                    </div>
+
+                    <div class="recipients-section">
+                        <h3>오늘 생일 대상자 (<span id="today-count">0</span>명)</h3>
+                        <div id="today-recipients" class="recipients-list">
+                            <p class="empty-message">오늘 생일인 후원자가 없습니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="preview-section">
+                        <h3>메시지 미리보기</h3>
+                        <div id="message-preview" class="message-preview">
+                            메시지를 입력하고 대상자를 선택하세요.
+                        </div>
+                    </div>
+
+                    <div class="send-actions">
+                        <button id="send-sms-btn" class="btn btn-primary btn-large" disabled>
+                            <span>📱</span> SMS 발송하기
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- History Page -->
+            <section id="history-page" class="page">
+                <h2 class="page-title">발송 이력</h2>
+
+                <div class="action-bar">
+                    <div class="filter-group">
+                        <button class="filter-btn active" data-filter="all">전체</button>
+                        <button class="filter-btn" data-filter="today">오늘</button>
+                        <button class="filter-btn" data-filter="week">이번 주</button>
+                        <button class="filter-btn" data-filter="month">이번 달</button>
+                    </div>
+                    <button id="export-history-btn" class="btn btn-secondary">
+                        <span>📥</span> CSV 내보내기
+                    </button>
+                </div>
+
+                <div class="stats-row">
+                    <div class="stat-item">
+                        <span class="stat-label">총 발송:</span>
+                        <span class="stat-value" id="history-total">0건</span>
+                    </div>
+                    <div class="stat-item success">
+                        <span class="stat-label">성공:</span>
+                        <span class="stat-value" id="history-success">0건</span>
+                    </div>
+                    <div class="stat-item error">
+                        <span class="stat-label">실패:</span>
+                        <span class="stat-value" id="history-failed">0건</span>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>날짜</th>
+                                <th>시간</th>
+                                <th>이름</th>
+                                <th>전화번호</th>
+                                <th>메시지</th>
+                                <th>상태</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body">
+                            <tr>
+                                <td colspan="6" class="empty-message">발송 이력이 없습니다.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Settings Page -->
+            <section id="settings-page" class="page">
+                <h2 class="page-title">설정</h2>
+
+                <div class="settings-section">
+                    <h3>Solapi API 설정</h3>
+                    <div class="form-group">
+                        <label for="api-key">API Key</label>
+                        <input type="text" id="api-key" class="input" placeholder="API Key를 입력하세요">
+                    </div>
+                    <div class="form-group">
+                        <label for="api-secret">API Secret</label>
+                        <input type="password" id="api-secret" class="input" placeholder="API Secret을 입력하세요">
+                    </div>
+                    <div class="form-group">
+                        <label for="sender-phone">발신번호</label>
+                        <input type="tel" id="sender-phone" class="input" placeholder="01012345678">
+                        <p class="input-hint">하이픈(-) 없이 숫자만 입력하세요</p>
+                    </div>
+                    <button id="save-settings-btn" class="btn btn-primary">
+                        <span>💾</span> 설정 저장
+                    </button>
+                </div>
+
+                <div class="settings-section">
+                    <h3>기본 메시지 템플릿</h3>
+                    <div class="form-group">
+                        <textarea id="default-template" class="message-input" rows="6"></textarea>
+                    </div>
+                    <button id="save-template-btn" class="btn btn-primary">
+                        <span>💾</span> 템플릿 저장
+                    </button>
+                </div>
+
+                <div class="settings-section">
+                    <h3>앱 정보</h3>
+                    <p><strong>버전:</strong> 1.0.0</p>
+                    <p><strong>제작:</strong> 복지관 생일 SMS 시스템</p>
+                    <p><strong>API:</strong> Solapi (https://solapi.com)</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay hidden">
+            <div class="spinner"></div>
+            <p class="loading-text">처리 중...</p>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toast-container" class="toast-container"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/dataManager.js"></script>
+    <script src="js/birthdayMatcher.js"></script>
+    <script src="js/smsService.js"></script>
+    <script src="js/historyManager.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
